@@ -309,6 +309,13 @@ pub(super) struct MinimalAllData {
 }
 
 #[derive(Serialize)]
+pub(super) struct UserLinks {
+    pub(super) classic: Vec<String>,
+    pub(super) secure: Vec<String>,
+    pub(super) tls: Vec<String>,
+}
+
+#[derive(Serialize)]
 pub(super) struct UserInfo {
     pub(super) username: String,
     pub(super) user_ad_tag: Option<String>,
@@ -319,6 +326,7 @@ pub(super) struct UserInfo {
     pub(super) current_connections: u64,
     pub(super) active_unique_ips: usize,
     pub(super) total_octets: u64,
+    pub(super) links: UserLinks,
 }
 
 #[derive(Serialize)]

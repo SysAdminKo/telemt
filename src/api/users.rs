@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::net::IpAddr;
 
 use hyper::StatusCode;
 
@@ -12,8 +13,8 @@ use super::config_store::{
 };
 use super::model::{
     ApiFailure, CreateUserRequest, CreateUserResponse, PatchUserRequest, RotateSecretRequest,
-    UserInfo, is_valid_ad_tag, is_valid_user_secret, is_valid_username, parse_optional_expiration,
-    random_user_secret,
+    UserInfo, UserLinks, is_valid_ad_tag, is_valid_user_secret, is_valid_username,
+    parse_optional_expiration, random_user_secret,
 };
 
 pub(super) async fn create_user(
@@ -105,6 +106,7 @@ pub(super) async fn create_user(
             current_connections: 0,
             active_unique_ips: 0,
             total_octets: 0,
+            links: build_user_links(&cfg, &secret),
         });
 
     Ok((CreateUserResponse { user, secret }, revision))
@@ -281,6 +283,16 @@ pub(super) async fn users_from_config(
 
     let mut users = Vec::with_capacity(names.len());
     for username in names {
+        let links = cfg
+            .access
+            .users
+            .get(&username)
+            .map(|secret| build_user_links(cfg, secret))
+            .unwrap_or(UserLinks {
+                classic: Vec::new(),
+                secure: Vec::new(),
+                tls: Vec::new(),
+            });
         users.push(UserInfo {
             user_ad_tag: cfg.access.user_ad_tags.get(&username).cloned(),
             max_tcp_conns: cfg.access.user_max_tcp_conns.get(&username).copied(),
@@ -294,8 +306,130 @@ pub(super) async fn users_from_config(
             current_connections: stats.get_user_curr_connects(&username),
             active_unique_ips: ip_counts.get(&username).copied().unwrap_or(0),
             total_octets: stats.get_user_total_octets(&username),
+            links,
             username,
         });
     }
     users
+}
+
+fn build_user_links(cfg: &ProxyConfig, secret: &str) -> UserLinks {
+    let hosts = resolve_link_hosts(cfg);
+    let port = cfg.general.links.public_port.unwrap_or(cfg.server.port);
+    let tls_domains = resolve_tls_domains(cfg);
+
+    let mut classic = Vec::new();
+    let mut secure = Vec::new();
+    let mut tls = Vec::new();
+
+    for host in &hosts {
+        if cfg.general.modes.classic {
+            classic.push(format!(
+                "tg://proxy?server={}&port={}&secret={}",
+                host, port, secret
+            ));
+        }
+        if cfg.general.modes.secure {
+            secure.push(format!(
+                "tg://proxy?server={}&port={}&secret=dd{}",
+                host, port, secret
+            ));
+        }
+        if cfg.general.modes.tls {
+            for domain in &tls_domains {
+                let domain_hex = hex::encode(domain);
+                tls.push(format!(
+                    "tg://proxy?server={}&port={}&secret=ee{}{}",
+                    host, port, secret, domain_hex
+                ));
+            }
+        }
+    }
+
+    UserLinks {
+        classic,
+        secure,
+        tls,
+    }
+}
+
+fn resolve_link_hosts(cfg: &ProxyConfig) -> Vec<String> {
+    if let Some(host) = cfg
+        .general
+        .links
+        .public_host
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return vec![host.to_string()];
+    }
+
+    let mut hosts = Vec::new();
+    for listener in &cfg.server.listeners {
+        if let Some(host) = listener
+            .announce
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            push_unique_host(&mut hosts, host);
+            continue;
+        }
+        if let Some(ip) = listener.announce_ip {
+            if !ip.is_unspecified() {
+                push_unique_host(&mut hosts, &ip.to_string());
+            }
+            continue;
+        }
+        if !listener.ip.is_unspecified() {
+            push_unique_host(&mut hosts, &listener.ip.to_string());
+        }
+    }
+
+    if hosts.is_empty() {
+        if let Some(host) = cfg.server.listen_addr_ipv4.as_deref() {
+            push_host_from_legacy_listen(&mut hosts, host);
+        }
+        if let Some(host) = cfg.server.listen_addr_ipv6.as_deref() {
+            push_host_from_legacy_listen(&mut hosts, host);
+        }
+    }
+
+    hosts
+}
+
+fn push_host_from_legacy_listen(hosts: &mut Vec<String>, raw: &str) {
+    let candidate = raw.trim();
+    if candidate.is_empty() {
+        return;
+    }
+
+    match candidate.parse::<IpAddr>() {
+        Ok(ip) if ip.is_unspecified() => {}
+        Ok(ip) => push_unique_host(hosts, &ip.to_string()),
+        Err(_) => push_unique_host(hosts, candidate),
+    }
+}
+
+fn push_unique_host(hosts: &mut Vec<String>, candidate: &str) {
+    if !hosts.iter().any(|existing| existing == candidate) {
+        hosts.push(candidate.to_string());
+    }
+}
+
+fn resolve_tls_domains(cfg: &ProxyConfig) -> Vec<&str> {
+    let mut domains = Vec::with_capacity(1 + cfg.censorship.tls_domains.len());
+    let primary = cfg.censorship.tls_domain.as_str();
+    if !primary.is_empty() {
+        domains.push(primary);
+    }
+    for domain in &cfg.censorship.tls_domains {
+        let value = domain.as_str();
+        if value.is_empty() || domains.contains(&value) {
+            continue;
+        }
+        domains.push(value);
+    }
+    domains
 }

@@ -261,11 +261,16 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         warn!("Using default tls_domain. Consider setting a custom domain.");
     }
 
+    let stats = Arc::new(Stats::new());
+    stats.apply_telemetry_policy(TelemetryPolicy::from_config(&config.general.telemetry));
+
     let upstream_manager = Arc::new(UpstreamManager::new(
         config.upstreams.clone(),
         config.general.upstream_connect_retry_attempts,
         config.general.upstream_connect_retry_backoff_ms,
         config.general.upstream_unhealthy_fail_threshold,
+        config.general.upstream_connect_failfast_hard_errors,
+        stats.clone(),
     ));
 
     let mut tls_domains = Vec::with_capacity(1 + config.censorship.tls_domains.len());
@@ -411,8 +416,6 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     let prefer_ipv6 = decision.prefer_ipv6();
     let mut use_middle_proxy = config.general.use_middle_proxy && (decision.ipv4_me || decision.ipv6_me);
-    let stats = Arc::new(Stats::new());
-    stats.apply_telemetry_policy(TelemetryPolicy::from_config(&config.general.telemetry));
     let beobachten = Arc::new(BeobachtenStore::new());
     let rng = Arc::new(SecureRandom::new());
 

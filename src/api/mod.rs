@@ -342,7 +342,7 @@ async fn handle(
             }
             ("GET", "/v1/runtime/me-selftest") => {
                 let revision = current_revision(&shared.config_path).await?;
-                let data = build_runtime_me_selftest_data(shared.as_ref()).await;
+                let data = build_runtime_me_selftest_data(shared.as_ref(), cfg.as_ref()).await;
                 Ok(success_response(StatusCode::OK, data, revision))
             }
             ("GET", "/v1/runtime/connections/summary") => {

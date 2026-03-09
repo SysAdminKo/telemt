@@ -4,6 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
+use crate::config::{ProxyConfig, UpstreamType};
 use crate::network::probe::{detect_interface_ipv4, detect_interface_ipv6, is_bogon};
 use crate::transport::middle_proxy::{bnd_snapshot, timeskew_snapshot};
 
@@ -71,7 +72,7 @@ pub(super) struct RuntimeMeSelftestPayload {
     pub(super) timeskew: RuntimeMeSelftestTimeskewData,
     pub(super) ip: RuntimeMeSelftestIpData,
     pub(super) pid: RuntimeMeSelftestPidData,
-    pub(super) bnd: RuntimeMeSelftestBndData,
+    pub(super) bnd: Option<RuntimeMeSelftestBndData>,
 }
 
 #[derive(Serialize)]
@@ -98,7 +99,10 @@ fn kdf_ewma_state() -> &'static Mutex<KdfEwmaState> {
     KDF_EWMA_STATE.get_or_init(|| Mutex::new(KdfEwmaState::default()))
 }
 
-pub(super) async fn build_runtime_me_selftest_data(shared: &ApiShared) -> RuntimeMeSelftestData {
+pub(super) async fn build_runtime_me_selftest_data(
+    shared: &ApiShared,
+    cfg: &ProxyConfig,
+) -> RuntimeMeSelftestData {
     let now_epoch_secs = now_epoch_secs();
     if shared.me_pool.read().await.is_none() {
         return RuntimeMeSelftestData {
@@ -139,7 +143,25 @@ pub(super) async fn build_runtime_me_selftest_data(shared: &ApiShared) -> Runtim
     let pid = std::process::id();
     let pid_state = if pid == 1 { "one" } else { "non-one" };
 
-    let bnd = bnd_snapshot();
+    let has_socks_upstreams = cfg.upstreams.iter().any(|upstream| {
+        upstream.enabled
+            && matches!(
+                upstream.upstream_type,
+                UpstreamType::Socks4 { .. } | UpstreamType::Socks5 { .. }
+            )
+    });
+
+    let bnd = if has_socks_upstreams {
+        let snapshot = bnd_snapshot();
+        Some(RuntimeMeSelftestBndData {
+            addr_state: snapshot.addr_status,
+            port_state: snapshot.port_status,
+            last_addr: snapshot.last_addr.map(|value| value.to_string()),
+            last_seen_age_secs: snapshot.last_seen_age_secs,
+        })
+    } else {
+        None
+    };
 
     RuntimeMeSelftestData {
         enabled: true,
@@ -168,12 +190,7 @@ pub(super) async fn build_runtime_me_selftest_data(shared: &ApiShared) -> Runtim
                 pid,
                 state: pid_state,
             },
-            bnd: RuntimeMeSelftestBndData {
-                addr_state: bnd.addr_status,
-                port_state: bnd.port_status,
-                last_addr: bnd.last_addr.map(|value| value.to_string()),
-                last_seen_age_secs: bnd.last_seen_age_secs,
-            },
+            bnd,
         }),
     }
 }

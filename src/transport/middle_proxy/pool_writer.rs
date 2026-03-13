@@ -163,6 +163,7 @@ impl MePool {
         let writer = MeWriter {
             id: writer_id,
             addr,
+            source_ip: hs.source_ip,
             writer_dc,
             generation,
             contour: contour.clone(),

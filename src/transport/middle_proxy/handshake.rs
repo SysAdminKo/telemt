@@ -59,6 +59,7 @@ impl KdfClientPortSource {
 pub(crate) struct HandshakeOutput {
     pub rd: ReadHalf<TcpStream>,
     pub wr: WriteHalf<TcpStream>,
+    pub source_ip: IpAddr,
     pub read_key: [u8; 32],
     pub read_iv: [u8; 16],
     pub write_key: [u8; 32],
@@ -689,6 +690,7 @@ impl MePool {
         Ok(HandshakeOutput {
             rd,
             wr,
+            source_ip: local_addr_nat.ip(),
             read_key: rk,
             read_iv,
             write_key: wk,

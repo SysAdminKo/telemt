@@ -34,6 +34,7 @@ pub(super) struct RefillEndpointKey {
 pub struct MeWriter {
     pub id: u64,
     pub addr: SocketAddr,
+    pub source_ip: IpAddr,
     pub writer_dc: i32,
     pub generation: u64,
     pub contour: Arc<AtomicU8>,

@@ -287,6 +287,7 @@ pub async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
         .await;
     let probe = run_probe(
         &config.network,
+        &config.upstreams,
         config.general.middle_proxy_nat_probe,
         config.general.stun_nat_probe_concurrency,
     )

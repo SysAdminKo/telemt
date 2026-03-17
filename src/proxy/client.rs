@@ -29,6 +29,7 @@ struct UserConnectionReservation {
     ip_tracker: Arc<UserIpTracker>,
     user: String,
     ip: IpAddr,
+    active: bool,
 }
 
 impl UserConnectionReservation {
@@ -38,12 +39,26 @@ impl UserConnectionReservation {
             ip_tracker,
             user,
             ip,
+            active: true,
         }
+    }
+
+    async fn release(mut self) {
+        if !self.active {
+            return;
+        }
+        self.active = false;
+        self.stats.decrement_user_curr_connects(&self.user);
+        self.ip_tracker.remove_ip(&self.user, self.ip).await;
     }
 }
 
 impl Drop for UserConnectionReservation {
     fn drop(&mut self) {
+        if !self.active {
+            return;
+        }
+        self.active = false;
         self.stats.decrement_user_curr_connects(&self.user);
 
         if let Ok(handle) = tokio::runtime::Handle::try_current() {
@@ -53,6 +68,12 @@ impl Drop for UserConnectionReservation {
             handle.spawn(async move {
                 ip_tracker.remove_ip(&user, ip).await;
             });
+        } else {
+            warn!(
+                user = %self.user,
+                ip = %self.ip,
+                "UserConnectionReservation dropped without Tokio runtime; IP reservation cleanup skipped"
+            );
         }
     }
 }
@@ -833,7 +854,7 @@ impl RunningClientHandler {
     {
         let user = success.user.clone();
 
-        let _user_limit_reservation =
+        let user_limit_reservation =
             match Self::acquire_user_connection_reservation_static(
                 &user,
                 &config,
@@ -905,6 +926,7 @@ impl RunningClientHandler {
             )
             .await
         };
+        user_limit_reservation.release().await;
         relay_result
     }
 

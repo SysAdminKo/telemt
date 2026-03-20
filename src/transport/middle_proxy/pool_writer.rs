@@ -142,6 +142,9 @@ impl MePool {
             seq_no: 0,
             crc_mode: hs.crc_mode,
         };
+        let cleanup_done = Arc::new(AtomicBool::new(false));
+        let cleanup_for_writer = cleanup_done.clone();
+        let pool_writer = Arc::downgrade(self);
         let cancel_wr = cancel.clone();
         tokio::spawn(async move {
             loop {
@@ -158,6 +161,17 @@ impl MePool {
                         }
                     }
                     _ = cancel_wr.cancelled() => break,
+                }
+            }
+            cancel_wr.cancel();
+            if cleanup_for_writer
+                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
+                .is_ok()
+            {
+                if let Some(pool) = pool_writer.upgrade() {
+                    pool.remove_writer_and_close_clients(writer_id).await;
+                } else {
+                    debug!(writer_id, "ME writer cleanup skipped: pool dropped");
                 }
             }
         });
@@ -196,7 +210,6 @@ impl MePool {
         let cancel_ping = cancel.clone();
         let tx_ping = tx.clone();
         let ping_tracker_ping = ping_tracker.clone();
-        let cleanup_done = Arc::new(AtomicBool::new(false));
         let cleanup_for_reader = cleanup_done.clone();
         let cleanup_for_ping = cleanup_done.clone();
         let keepalive_enabled = self.me_keepalive_enabled;
@@ -242,6 +255,7 @@ impl MePool {
                 stats_reader_close.increment_me_idle_close_by_peer_total();
                 info!(writer_id, "ME socket closed by peer on idle writer");
             }
+            cancel_reader_token.cancel();
             if cleanup_for_reader
                 .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
                 .is_ok()
@@ -249,13 +263,12 @@ impl MePool {
                 if let Some(pool) = pool.upgrade() {
                     pool.remove_writer_and_close_clients(writer_id).await;
                 } else {
-                    // Pool is gone (shutdown). Remove writer from Vec directly
-                    // as a last resort — no registry/refill side effects needed
-                    // during shutdown. conn_count is not decremented here because
-                    // the pool (and its counters) are already dropped.
-                    let mut ws = writers_arc.write().await;
-                    ws.retain(|w| w.id != writer_id);
-                    debug!(writer_id, remaining = ws.len(), "Writer removed during pool shutdown");
+                    let remaining = writers_arc.read().await.len();
+                    debug!(
+                        writer_id,
+                        remaining,
+                        "ME reader cleanup skipped: pool dropped"
+                    );
                 }
             }
             if let Err(e) = res {

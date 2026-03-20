@@ -1327,6 +1327,33 @@ async fn recover_single_endpoint_outage(
     }
 
     let (min_backoff_ms, max_backoff_ms) = pool.single_endpoint_outage_backoff_bounds_ms();
+    let bypass_quarantine = pool.single_endpoint_outage_disable_quarantine();
+    if !bypass_quarantine {
+        let quarantine_remaining = {
+            let mut guard = pool.endpoint_quarantine.lock().await;
+            let quarantine_now = Instant::now();
+            guard.retain(|_, expiry| *expiry > quarantine_now);
+            guard
+                .get(&endpoint)
+                .map(|expiry| expiry.saturating_duration_since(quarantine_now))
+        };
+
+        if let Some(remaining) = quarantine_remaining
+            && !remaining.is_zero()
+        {
+            outage_next_attempt.insert(key, now + remaining);
+            debug!(
+                dc = %key.0,
+                family = ?key.1,
+                %endpoint,
+                required,
+                wait_ms = remaining.as_millis(),
+                "Single-endpoint outage reconnect deferred by endpoint quarantine"
+            );
+            return;
+        }
+    }
+
     if *reconnect_budget == 0 {
         outage_next_attempt.insert(key, now + Duration::from_millis(min_backoff_ms.max(250)));
         debug!(
@@ -1342,7 +1369,6 @@ async fn recover_single_endpoint_outage(
     pool.stats
         .increment_me_single_endpoint_outage_reconnect_attempt_total();
 
-    let bypass_quarantine = pool.single_endpoint_outage_disable_quarantine();
     let attempt_ok = if bypass_quarantine {
         pool.stats
             .increment_me_single_endpoint_quarantine_bypass_total();
@@ -1561,9 +1587,10 @@ mod tests {
     use tokio::sync::mpsc;
     use tokio_util::sync::CancellationToken;
 
-    use super::reap_draining_writers;
+    use super::{reap_draining_writers, recover_single_endpoint_outage};
     use crate::config::{GeneralConfig, MeRouteNoWriterMode, MeSocksKdfPolicy, MeWriterPickMode};
     use crate::crypto::SecureRandom;
+    use crate::network::IpFamily;
     use crate::network::probe::NetworkDecision;
     use crate::stats::Stats;
     use crate::transport::middle_proxy::codec::WriterCommand;
@@ -1744,5 +1771,66 @@ mod tests {
         assert_eq!(pool.registry.get_writer(conn_a).await.unwrap().writer_id, 10);
         assert_eq!(pool.registry.get_writer(conn_b).await.unwrap().writer_id, 20);
         assert_eq!(pool.registry.get_writer(conn_c).await.unwrap().writer_id, 30);
+    }
+
+    #[tokio::test]
+    async fn removing_draining_writer_still_quarantines_flapping_endpoint() {
+        let pool = make_pool(1).await;
+        let now_epoch_secs = MePool::now_epoch_secs();
+        let writer_id = 11u64;
+        let writer_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 4000 + writer_id as u16);
+        let conn_id =
+            insert_draining_writer(&pool, writer_id, now_epoch_secs.saturating_sub(5)).await;
+
+        assert!(pool
+            .registry
+            .evict_bound_conn_if_writer(conn_id, writer_id)
+            .await);
+        pool.remove_writer_and_close_clients(writer_id).await;
+
+        assert!(pool.is_endpoint_quarantined(writer_addr).await);
+    }
+
+    #[tokio::test]
+    async fn single_endpoint_outage_respects_quarantine_when_bypass_disabled() {
+        let pool = make_pool(1).await;
+        pool.me_single_endpoint_outage_disable_quarantine
+            .store(false, Ordering::Relaxed);
+
+        let key = (2, IpFamily::V4);
+        let endpoint = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 7443);
+        let quarantine_ttl = Duration::from_millis(200);
+        {
+            let mut guard = pool.endpoint_quarantine.lock().await;
+            guard.insert(endpoint, Instant::now() + quarantine_ttl);
+        }
+
+        let rng = Arc::new(SecureRandom::new());
+        let mut outage_backoff = HashMap::new();
+        let mut outage_next_attempt = HashMap::new();
+        let mut reconnect_budget = 1usize;
+        let started_at = Instant::now();
+
+        recover_single_endpoint_outage(
+            &pool,
+            &rng,
+            key,
+            endpoint,
+            1,
+            &mut outage_backoff,
+            &mut outage_next_attempt,
+            &mut reconnect_budget,
+        )
+        .await;
+
+        assert_eq!(reconnect_budget, 1);
+        assert_eq!(
+            pool.stats
+                .get_me_single_endpoint_outage_reconnect_attempt_total(),
+            0
+        );
+        assert_eq!(pool.stats.get_me_single_endpoint_quarantine_bypass_total(), 0);
+        let next_attempt = outage_next_attempt.get(&key).copied().unwrap();
+        assert!(next_attempt >= started_at + Duration::from_millis(120));
     }
 }

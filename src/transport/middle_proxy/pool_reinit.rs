@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 
-use rand::Rng;
+use rand::RngExt;
 use rand::seq::SliceRandom;
 use tracing::{debug, info, warn};
 use std::collections::hash_map::DefaultHasher;

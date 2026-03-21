@@ -10,7 +10,7 @@ use crate::stats::Stats;
 use crate::stream::{BufferPool, CryptoReader, CryptoWriter, PooledBuffer};
 use crate::transport::middle_proxy::MePool;
 use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 use std::sync::Arc;

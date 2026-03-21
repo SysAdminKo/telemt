@@ -5,7 +5,7 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
 
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use shadowsocks::config::ServerConfig as ShadowsocksServerConfig;
 use tracing::warn;
@@ -979,7 +979,7 @@ impl ProxyConfig {
         if !config.censorship.tls_emulation
             && config.censorship.fake_cert_len == default_fake_cert_len()
         {
-            config.censorship.fake_cert_len = rand::rng().gen_range(1024..4096);
+            config.censorship.fake_cert_len = rand::rng().random_range(1024..4096);
         }
 
         // Resolve listen_tcp: explicit value wins, otherwise auto-detect.

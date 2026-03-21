@@ -4,7 +4,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use rand::Rng;
+use rand::RngExt;
 use tracing::{debug, info, warn};
 
 use crate::config::MeFloorMode;

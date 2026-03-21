@@ -3,7 +3,7 @@
 use std::str;
 use std::net::SocketAddr;
 use std::time::Duration;
-use rand::{Rng, RngCore};
+use rand::{Rng, RngExt};
 use tokio::net::TcpStream;
 #[cfg(unix)]
 use tokio::net::UnixStream;

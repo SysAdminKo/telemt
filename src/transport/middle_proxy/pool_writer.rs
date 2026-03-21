@@ -6,7 +6,7 @@ use std::io::ErrorKind;
 
 use bytes::Bytes;
 use bytes::BytesMut;
-use rand::Rng;
+use rand::RngExt;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};

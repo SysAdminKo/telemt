@@ -1,6 +1,6 @@
 use super::*;
 use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 use std::sync::Arc;
 
 #[test]

@@ -1,7 +1,7 @@
 use super::*;
 use crate::crypto::{sha256, sha256_hmac};
 use dashmap::DashMap;
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 use rand::rngs::StdRng;
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;

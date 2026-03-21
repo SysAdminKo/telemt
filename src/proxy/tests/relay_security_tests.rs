@@ -733,7 +733,7 @@ async fn relay_bidirectional_asymmetric_backpressure() {
     );
 }
 
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand::{RngExt, SeedableRng, rngs::StdRng};
 
 #[tokio::test]
 async fn relay_bidirectional_light_fuzzing_temporal_jitter() {

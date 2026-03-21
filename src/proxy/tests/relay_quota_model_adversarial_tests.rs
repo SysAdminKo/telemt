@@ -3,7 +3,7 @@ use crate::error::ProxyError;
 use crate::stats::Stats;
 use crate::stream::BufferPool;
 use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 use std::sync::Arc;
 use tokio::io::{duplex, AsyncRead, AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Barrier;

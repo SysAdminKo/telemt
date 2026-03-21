@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use rand::Rng;
+use rand::RngExt;
 
 /// Options for the init command
 pub struct InitOptions {

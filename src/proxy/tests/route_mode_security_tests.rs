@@ -1,5 +1,5 @@
 use super::*;
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 use rand::rngs::StdRng;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};

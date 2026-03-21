@@ -17,7 +17,7 @@ use tracing::{debug, warn, trace};
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::crypto::{sha256, AesCtr, SecureRandom};
-use rand::Rng;
+use rand::RngExt;
 use crate::protocol::constants::*;
 use crate::protocol::tls;
 use crate::stream::{FakeTlsReader, FakeTlsWriter, CryptoReader, CryptoWriter};

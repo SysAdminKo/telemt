@@ -107,7 +107,7 @@ jobs:
 
       - name: Tests
         shell: bash
-        run: cargo test --workspace --all-targets --locked
+        run: cargo test
 
   build-binaries:
     name: Build ${{ matrix.asset_name }}

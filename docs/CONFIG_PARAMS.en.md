@@ -738,7 +738,7 @@ This document lists all configuration keys accepted by `config.toml`.
 <a id="cfg-general-me_single_endpoint_outage_disable_quarantine"></a>
 - `me_single_endpoint_outage_disable_quarantine`
   - **Constraints / validation**: `bool`.
-  - **Description**: Ignores endpoint quarantine while in single-endpoint outage mode.
+  - **Description**: Allows single-endpoint outage recovery reconnect paths to bypass endpoint quarantine.
   - **Example**:
 
     ```toml
@@ -788,7 +788,7 @@ This document lists all configuration keys accepted by `config.toml`.
 <a id="cfg-general-me_adaptive_floor_idle_secs"></a>
 - `me_adaptive_floor_idle_secs`
   - **Constraints / validation**: `u64` (seconds).
-  - **Description**: Idle time before adaptive floor may reduce the single-endpoint writer target.
+  - **Description**: Reserved adaptive-floor timing knob exposed in runtime config and API snapshots for compatibility.
   - **Example**:
 
     ```toml
@@ -818,7 +818,7 @@ This document lists all configuration keys accepted by `config.toml`.
 <a id="cfg-general-me_adaptive_floor_recover_grace_secs"></a>
 - `me_adaptive_floor_recover_grace_secs`
   - **Constraints / validation**: `u64` (seconds).
-  - **Description**: Grace period to hold static floor after activity in adaptive mode.
+  - **Description**: Reserved adaptive-floor grace knob exposed in runtime config and API snapshots for compatibility.
   - **Example**:
 
     ```toml

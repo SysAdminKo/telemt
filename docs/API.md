@@ -919,7 +919,7 @@ Note: the request contract is defined, but the corresponding route currently ret
 | `me_bind_stale_ttl_secs` | `u64` | Stale writer TTL. |
 | `me_single_endpoint_shadow_writers` | `u8` | Shadow writers for single-endpoint DCs. |
 | `me_single_endpoint_outage_mode_enabled` | `bool` | Outage mode toggle for single-endpoint DCs. |
-| `me_single_endpoint_outage_disable_quarantine` | `bool` | Quarantine behavior in outage mode. |
+| `me_single_endpoint_outage_disable_quarantine` | `bool` | Allows reconnect attempts to bypass endpoint quarantine for single-endpoint outage recovery paths. |
 | `me_single_endpoint_outage_backoff_min_ms` | `u64` | Outage mode min reconnect backoff. |
 | `me_single_endpoint_outage_backoff_max_ms` | `u64` | Outage mode max reconnect backoff. |
 | `me_single_endpoint_shadow_rotate_every_secs` | `u64` | Shadow rotation interval. |

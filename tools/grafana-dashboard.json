@@ -2,7 +2,7 @@
   "apiVersion": "dashboard.grafana.app/v1beta1",
   "kind": "DashboardWithAccessInfo",
   "metadata": {
-    "name": "telemt-expanded-v61"
+    "name": "Telemt MtProto proxy"
   },
   "spec": {
     "annotations": {

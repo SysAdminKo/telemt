@@ -23,8 +23,6 @@ curl -fsSL https://raw.githubusercontent.com/telemt/telemt/main/install.sh | sh
 - [Quick Start Guide](docs/Quick_start/QUICK_START_GUIDE.en.md)
 - [Инструкция по быстрому запуску](docs/Quick_start/QUICK_START_GUIDE.ru.md)
 
-![telemt_scheme](docs/assets/telemt.png)
-
 Our implementation of **TLS-fronting** is one of the most deeply debugged, focused, advanced and *almost* **"behaviorally consistent to real"**:  we are confident we have it right - [see evidence on our validation and traces](docs/FAQ.en.md#recognizability-for-dpi-and-crawler)
 
 Our ***Middle-End Pool*** is fastest by design in standard scenarios, compared to other implementations of connecting to the Middle-End Proxy: non dramatically, but usual
@@ -39,22 +37,16 @@ Our ***Middle-End Pool*** is fastest by design in standard scenarios, compared t
 - Graceful shutdown on Ctrl+C;
 - Extensive logging via `trace` and `debug` with `RUST_LOG` method.
 
-# GOTO
-- [FAQ](#faq)
-- [Architecture](docs/Architecture)
-- [Quick Start Guide](#quick-start-guide)
-- [Config parameters](docs/Config_params)
-- [Build](#build)
-- [Why Rust?](#why-rust)
-
-## Quick Start Guide
-- [Quick Start Guide RU](docs/Quick_start/QUICK_START_GUIDE.ru.md)
-- [Quick Start Guide EN](docs/Quick_start/QUICK_START_GUIDE.en.md)
-
 ## FAQ
-
 - [FAQ RU](docs/FAQ.ru.md)
 - [FAQ EN](docs/FAQ.en.md)
+
+# Learn more about Telemt
+- [Our Architecture](docs/Architecture)
+- [All Config Options](docs/Config_params)
+- [How to build your own Telemt?](#build)
+- [Running on BSD](docs/Quick_start/OPENBSD_QUICK_START_GUIDE.en.md)
+- [Why Rust?](#why-rust)
 
 ## Build
 ```bash
@@ -77,15 +69,11 @@ chmod +x /bin/telemt
 telemt config.toml
 ```
 
-### OpenBSD
-- Build and service setup guide: [OpenBSD Guide (EN)](docs/Quick_start/OPENBSD_QUICK_START_GUIDE.en.md)
-- Example rc.d script: [contrib/openbsd/telemt.rcd](contrib/openbsd/telemt.rcd)
-- Status: OpenBSD sandbox hardening with `pledge(2)` and `unveil(2)` is not implemented yet.
-
-
 ## Why Rust?
 - Long-running reliability and idempotent behavior
 - Rust's deterministic resource management - RAII 
 - No garbage collector
 - Memory safety and reduced attack surface
 - Tokio's asynchronous architecture
+
+![telemt_scheme](docs/assets/telemt.png)

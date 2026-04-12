@@ -42,7 +42,7 @@ openssl rand -hex 8
 ```
 4. **Random Path (путь для xhttp):**
 ```bash
-openssl rand -hex 8
+openssl rand -hex 16
 # Сохраните вывод (например, 0123456789abcdef0123456789abcdef), чтобы заменить <YOUR_RANDOM_PATH> в конфигах
 ```
 

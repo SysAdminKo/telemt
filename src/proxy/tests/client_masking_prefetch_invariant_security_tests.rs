@@ -38,6 +38,7 @@ fn build_harness(secret_hex: &str, mask_port: u16) -> PipelineHarness {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,

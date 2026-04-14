@@ -53,6 +53,7 @@ fn new_client_harness() -> ClientHarness {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,

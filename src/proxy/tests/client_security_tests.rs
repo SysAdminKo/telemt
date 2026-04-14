@@ -332,6 +332,7 @@ async fn relay_task_abort_releases_user_gate_and_ip_reservation() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -446,6 +447,7 @@ async fn relay_cutover_releases_user_gate_and_ip_reservation() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -570,6 +572,7 @@ async fn integration_route_cutover_and_quota_overlap_fails_closed_and_releases_s
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -740,6 +743,7 @@ async fn proxy_protocol_header_is_rejected_when_trust_list_is_empty() {
             upstream_type: crate::config::UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -817,6 +821,7 @@ async fn proxy_protocol_header_from_untrusted_peer_range_is_rejected_under_load(
                 upstream_type: crate::config::UpstreamType::Direct {
                     interface: None,
                     bind_addresses: None,
+                    bindtodevice: None,
                 },
                 weight: 1,
                 enabled: true,
@@ -977,6 +982,7 @@ async fn short_tls_probe_is_masked_through_client_pipeline() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1065,6 +1071,7 @@ async fn tls12_record_probe_is_masked_through_client_pipeline() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1151,6 +1158,7 @@ async fn handle_client_stream_increments_connects_all_exactly_once() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1244,6 +1252,7 @@ async fn running_client_handler_increments_connects_all_exactly_once() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1334,6 +1343,7 @@ async fn idle_pooled_connection_closes_cleanly_in_generic_stream_path() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1405,6 +1415,7 @@ async fn idle_pooled_connection_closes_cleanly_in_client_handler_path() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1491,6 +1502,7 @@ async fn partial_tls_header_stall_triggers_handshake_timeout() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1816,6 +1828,7 @@ async fn valid_tls_path_does_not_fall_back_to_mask_backend() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1925,6 +1938,7 @@ async fn valid_tls_with_invalid_mtproto_falls_back_to_mask_backend() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -2032,6 +2046,7 @@ async fn client_handler_tls_bad_mtproto_is_forwarded_to_mask_backend() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -2154,6 +2169,7 @@ async fn alpn_mismatch_tls_probe_is_masked_through_client_pipeline() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -2247,6 +2263,7 @@ async fn invalid_hmac_tls_probe_is_masked_through_client_pipeline() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -2346,6 +2363,7 @@ async fn burst_invalid_tls_probes_are_masked_verbatim() {
                 upstream_type: UpstreamType::Direct {
                     interface: None,
                     bind_addresses: None,
+                    bindtodevice: None,
                 },
                 weight: 1,
                 enabled: true,
@@ -3251,6 +3269,7 @@ async fn relay_connect_error_releases_user_and_ip_before_return() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -3812,6 +3831,7 @@ async fn untrusted_proxy_header_source_is_rejected() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -3882,6 +3902,7 @@ async fn empty_proxy_trusted_cidrs_rejects_proxy_header_by_default() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -3979,6 +4000,7 @@ async fn oversized_tls_record_is_masked_in_generic_stream_pipeline() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -4082,6 +4104,7 @@ async fn oversized_tls_record_is_masked_in_client_handler_pipeline() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -4199,6 +4222,7 @@ async fn tls_record_len_min_minus_1_is_rejected_in_generic_stream_pipeline() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -4302,6 +4326,7 @@ async fn tls_record_len_min_minus_1_is_rejected_in_client_handler_pipeline() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -4408,6 +4433,7 @@ async fn tls_record_len_16384_is_accepted_in_generic_stream_pipeline() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -4509,6 +4535,7 @@ async fn tls_record_len_16384_is_accepted_in_client_handler_pipeline() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,

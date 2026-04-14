@@ -39,6 +39,7 @@ fn build_harness(secret_hex: &str, mask_port: u16) -> RedTeamHarness {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -229,6 +230,7 @@ async fn redteam_03_masking_duration_must_be_less_than_1ms_when_backend_down() {
                 upstream_type: UpstreamType::Direct {
                     interface: None,
                     bind_addresses: None,
+                    bindtodevice: None,
                 },
                 weight: 1,
                 enabled: true,
@@ -470,6 +472,7 @@ async fn measure_invalid_probe_duration_ms(delay_ms: u64, tls_len: u16, body_sen
                 upstream_type: UpstreamType::Direct {
                     interface: None,
                     bind_addresses: None,
+                    bindtodevice: None,
                 },
                 weight: 1,
                 enabled: true,
@@ -544,6 +547,7 @@ async fn capture_forwarded_probe_len(tls_len: u16, body_sent: usize) -> usize {
                 upstream_type: UpstreamType::Direct {
                     interface: None,
                     bind_addresses: None,
+                    bindtodevice: None,
                 },
                 weight: 1,
                 enabled: true,

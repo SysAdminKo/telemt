@@ -27,6 +27,7 @@ fn make_test_upstream_manager(stats: Arc<Stats>) -> Arc<UpstreamManager> {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,

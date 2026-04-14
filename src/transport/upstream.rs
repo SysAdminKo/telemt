@@ -26,7 +26,9 @@ use crate::stats::Stats;
 use crate::transport::shadowsocks::{
     ShadowsocksStream, connect_shadowsocks, sanitize_shadowsocks_url,
 };
-use crate::transport::socket::{create_outgoing_socket_bound, resolve_interface_ip};
+use crate::transport::socket::{
+    bind_outgoing_socket_to_device, create_outgoing_socket_bound, resolve_interface_ip,
+};
 use crate::transport::socks::{connect_socks4, connect_socks5};
 
 /// Number of Telegram datacenters
@@ -928,6 +930,7 @@ impl UpstreamManager {
             UpstreamType::Direct {
                 interface,
                 bind_addresses,
+                bindtodevice,
             } => {
                 let bind_ip = Self::resolve_bind_address(
                     interface,
@@ -943,6 +946,10 @@ impl UpstreamManager {
                 }
 
                 let socket = create_outgoing_socket_bound(target, bind_ip)?;
+                if let Some(device) = bindtodevice.as_deref().filter(|value| !value.is_empty()) {
+                    bind_outgoing_socket_to_device(&socket, device).map_err(ProxyError::Io)?;
+                    debug!(bindtodevice = %device, target = %target, "Pinned socket to interface");
+                }
                 if let Some(ip) = bind_ip {
                     debug!(bind = %ip, target = %target, "Bound outgoing socket");
                 } else if interface.is_some() || bind_addresses.is_some() {
@@ -1209,6 +1216,7 @@ impl UpstreamManager {
                 UpstreamType::Direct {
                     interface,
                     bind_addresses,
+                    bindtodevice,
                 } => {
                     let mut direct_parts = Vec::new();
                     if let Some(dev) = interface.as_deref().filter(|v| !v.is_empty()) {
@@ -1216,6 +1224,9 @@ impl UpstreamManager {
                     }
                     if let Some(src) = bind_addresses.as_ref().filter(|v| !v.is_empty()) {
                         direct_parts.push(format!("src={}", src.join(",")));
+                    }
+                    if let Some(device) = bindtodevice.as_deref().filter(|v| !v.is_empty()) {
+                        direct_parts.push(format!("bindtodevice={device}"));
                     }
                     if direct_parts.is_empty() {
                         "direct".to_string()

@@ -1293,6 +1293,7 @@ async fn direct_relay_abort_midflight_releases_route_gauge() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1400,6 +1401,7 @@ async fn direct_relay_cutover_midflight_releases_route_gauge() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1522,6 +1524,7 @@ async fn direct_relay_cutover_storm_multi_session_keeps_generic_errors_and_relea
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             weight: 1,
             enabled: true,
@@ -1758,6 +1761,7 @@ async fn negative_direct_relay_dc_connection_refused_fails_fast() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             selected_scope: String::new(),
         }],
@@ -1849,6 +1853,7 @@ async fn adversarial_direct_relay_cutover_integrity() {
             upstream_type: UpstreamType::Direct {
                 interface: None,
                 bind_addresses: None,
+                bindtodevice: None,
             },
             selected_scope: String::new(),
         }],

@@ -32,6 +32,8 @@ fn make_test_upstream_manager(stats: Arc<Stats>) -> Arc<UpstreamManager> {
             enabled: true,
             scopes: String::new(),
             selected_scope: String::new(),
+            ipv4: None,
+            ipv6: None,
         }],
         1,
         1,

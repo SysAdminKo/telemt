@@ -253,6 +253,12 @@ fn validate_upstreams(config: &ProxyConfig) -> Result<()> {
     }
 
     for upstream in &config.upstreams {
+        if matches!(upstream.ipv4, Some(false)) && matches!(upstream.ipv6, Some(false)) {
+            return Err(ProxyError::Config(
+                "upstream.ipv4 and upstream.ipv6 cannot both be false".to_string(),
+            ));
+        }
+
         if let UpstreamType::Shadowsocks { url, .. } = &upstream.upstream_type {
             let parsed = ShadowsocksServerConfig::from_url(url)
                 .map_err(|error| ProxyError::Config(format!("invalid shadowsocks url: {error}")))?;
@@ -1324,6 +1330,7 @@ impl ProxyConfig {
             if let Ok(ipv4) = ipv4_str.parse::<IpAddr>() {
                 config.server.listeners.push(ListenerConfig {
                     ip: ipv4,
+                    port: Some(config.server.port),
                     announce: None,
                     announce_ip: None,
                     proxy_protocol: None,
@@ -1335,11 +1342,19 @@ impl ProxyConfig {
             {
                 config.server.listeners.push(ListenerConfig {
                     ip: ipv6,
+                    port: Some(config.server.port),
                     announce: None,
                     announce_ip: None,
                     proxy_protocol: None,
                     reuse_allow: false,
                 });
+            }
+        }
+
+        // Migration: listeners[].port fallback to legacy server.port.
+        for listener in &mut config.server.listeners {
+            if listener.port.is_none() {
+                listener.port = Some(config.server.port);
             }
         }
 
@@ -1369,6 +1384,8 @@ impl ProxyConfig {
                 enabled: true,
                 scopes: String::new(),
                 selected_scope: String::new(),
+                ipv4: None,
+                ipv6: None,
             });
         }
 

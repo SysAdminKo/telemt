@@ -44,6 +44,8 @@ fn build_harness(secret_hex: &str, mask_port: u16) -> PipelineHarness {
             enabled: true,
             scopes: String::new(),
             selected_scope: String::new(),
+            ipv4: None,
+            ipv6: None,
         }],
         1,
         1,

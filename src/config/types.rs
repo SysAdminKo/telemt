@@ -1153,7 +1153,8 @@ pub struct LinksConfig {
     #[serde(default)]
     pub public_host: Option<String>,
 
-    /// Public port for tg:// link generation (overrides server.port).
+    /// Public port for tg:// link generation.
+    /// Overrides listener ports and legacy `server.port`.
     #[serde(default)]
     pub public_port: Option<u16>,
 }
@@ -1375,6 +1376,8 @@ impl Default for ConntrackControlConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
+    /// Legacy listener port used for backward compatibility.
+    /// For new configs prefer `[[server.listeners]].port`.
     #[serde(default = "default_port")]
     pub port: u16,
 
@@ -1917,11 +1920,22 @@ pub struct UpstreamConfig {
     pub scopes: String,
     #[serde(skip)]
     pub selected_scope: String,
+    /// Allow IPv4 DC targets for this upstream.
+    /// `None` means auto-detect from runtime connectivity state.
+    #[serde(default)]
+    pub ipv4: Option<bool>,
+    /// Allow IPv6 DC targets for this upstream.
+    /// `None` means auto-detect from runtime connectivity state.
+    #[serde(default)]
+    pub ipv6: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListenerConfig {
     pub ip: IpAddr,
+    /// Per-listener TCP port. If omitted, falls back to legacy `server.port`.
+    #[serde(default)]
+    pub port: Option<u16>,
     /// IP address or hostname to announce in proxy links.
     /// Takes precedence over `announce_ip` if both are set.
     #[serde(default)]

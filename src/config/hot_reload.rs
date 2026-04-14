@@ -17,8 +17,9 @@
 //! | `network` | `dns_overrides`                | Applied immediately                            |
 //! | `access`  | All user/quota fields          | Effective immediately                          |
 //!
-//! Fields that require re-binding sockets (`server.port`, `censorship.*`,
-//! `network.*`, `use_middle_proxy`) are **not** applied; a warning is emitted.
+//! Fields that require re-binding sockets (`server.listeners`, legacy
+//! `server.port`, `censorship.*`, `network.*`, `use_middle_proxy`) are **not**
+//! applied; a warning is emitted.
 //! Non-hot changes are never mixed into the runtime config snapshot.
 
 use std::collections::BTreeSet;
@@ -299,11 +300,20 @@ fn listeners_equal(
     }
     lhs.iter().zip(rhs.iter()).all(|(a, b)| {
         a.ip == b.ip
+            && a.port == b.port
             && a.announce == b.announce
             && a.announce_ip == b.announce_ip
             && a.proxy_protocol == b.proxy_protocol
             && a.reuse_allow == b.reuse_allow
     })
+}
+
+fn resolve_default_link_port(cfg: &ProxyConfig) -> u16 {
+    cfg.server
+        .listeners
+        .first()
+        .and_then(|listener| listener.port)
+        .unwrap_or(cfg.server.port)
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -1120,7 +1130,7 @@ fn log_changes(
                 .general
                 .links
                 .public_port
-                .unwrap_or(new_cfg.server.port);
+                .unwrap_or(resolve_default_link_port(new_cfg));
             for user in &added {
                 if let Some(secret) = new_hot.users.get(*user) {
                     print_user_links(user, secret, &host, port, new_cfg);

@@ -2297,7 +2297,7 @@ Note: This section also accepts the legacy alias `[server.admin_api]` (same sche
 | --- | ---- | ------- |
 | [`tls_domain`](#tls_domain) | `String` | `"petrovich.ru"` |
 | [`tls_domains`](#tls_domains) | `String[]` | `[]` |
-| [`unknown_sni_action`](#unknown_sni_action) | `"drop"`, `"mask"`, `"accept"` | `"drop"` |
+| [`unknown_sni_action`](#unknown_sni_action) | `"drop"`, `"mask"`, `"accept"`, `"reject_handshake"` | `"drop"` |
 | [`tls_fetch_scope`](#tls_fetch_scope) | `String` | `""` |
 | [`tls_fetch`](#tls_fetch) | `Table` | built-in defaults |
 | [`mask`](#mask) | `bool` | `true` |
@@ -2348,13 +2348,17 @@ Note: This section also accepts the legacy alias `[server.admin_api]` (same sche
     tls_domains = ["example.net", "example.org"]
     ```
 ## unknown_sni_action
-  - **Constraints / validation**: `"drop"`, `"mask"` or `"accept"`.
+  - **Constraints / validation**: `"drop"`, `"mask"`, `"accept"` or `"reject_handshake"`.
   - **Description**: Action for TLS ClientHello with unknown / non-configured SNI.
+    - `drop` — close the connection without any response (silent FIN after `server_hello_delay` is applied). Timing-indistinguishable from the Success branch, but wire-quieter than what a real web server would do.
+    - `mask` — transparently proxy the connection to `mask_host:mask_port` (TLS fronting). The client receives a real ServerHello from the backend with its real certificate. Maximum camouflage, but opens an outbound connection for every misdirected request.
+    - `accept` — pretend the SNI is valid and continue on the auth path. Weakens active-probing resistance; only meaningful in narrow scenarios.
+    - `reject_handshake` — emit a fatal TLS `unrecognized_name` alert (RFC 6066, AlertDescription = 112) and close the connection. Identical on the wire to a modern nginx with `ssl_reject_handshake on;` on its default vhost: looks like an ordinary HTTPS server that simply does not host the requested name. Recommended when the goal is maximal parity with a stock web server rather than TLS fronting. `server_hello_delay` is intentionally **not** applied to this branch, so the alert is emitted "instantly" the way a reference nginx would.
   - **Example**:
 
     ```toml
     [censorship]
-    unknown_sni_action = "drop"
+    unknown_sni_action = "reject_handshake"
     ```
 ## tls_fetch_scope
   - **Constraints / validation**: `String`. Value is trimmed during load; whitespace-only becomes empty.
@@ -3110,5 +3114,3 @@ If your backend or network is very bandwidth-constrained, reduce cap first. If p
     username = "alice"
     password = "secret"
     ```
-
-

@@ -549,9 +549,7 @@ pub(crate) fn expected_handshake_close_description(
             std::io::ErrorKind::BrokenPipe => {
                 Some("Peer closed write side before MTProto handshake completed")
             }
-            std::io::ErrorKind::NotConnected => {
-                Some("Handshake socket was already closed by peer")
-            }
+            std::io::ErrorKind::NotConnected => Some("Handshake socket was already closed by peer"),
             _ => None,
         }
     }

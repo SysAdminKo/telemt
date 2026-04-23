@@ -535,9 +535,8 @@ pub(crate) fn spawn_tcp_accept_loops(
                                         }
                                     }
                                     _ if is_expected_handshake_eof(&e) => {
-                                        let reason = handshake_close_reason.unwrap_or(
-                                            "Peer closed during initial handshake",
-                                        );
+                                        let reason = handshake_close_reason
+                                            .unwrap_or("Peer closed during initial handshake");
                                         if let Some(real_peer) = real_peer {
                                             info!(
                                                 peer = %peer_addr,

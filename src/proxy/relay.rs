@@ -230,6 +230,7 @@ struct RateWaitState {
 }
 
 impl<S> StatsIo<S> {
+    #[cfg(test)]
     fn new(
         inner: S,
         counters: Arc<SharedCounters>,

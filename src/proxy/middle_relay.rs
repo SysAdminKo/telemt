@@ -2201,6 +2201,7 @@ enum MeWriterResponseOutcome {
     Close,
 }
 
+#[cfg(test)]
 async fn process_me_writer_response<W>(
     response: MeResponse,
     client_writer: &mut CryptoWriter<W>,

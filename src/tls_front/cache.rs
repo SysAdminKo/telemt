@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use tokio::sync::RwLock;
 use tokio::time::sleep;
@@ -12,12 +13,15 @@ use crate::tls_front::types::{
     CachedTlsData, ParsedServerHello, TlsBehaviorProfile, TlsFetchResult,
 };
 
+const FULL_CERT_SENT_SWEEP_INTERVAL_SECS: u64 = 30;
+
 /// Lightweight in-memory + optional on-disk cache for TLS fronting data.
 #[derive(Debug)]
 pub struct TlsFrontCache {
     memory: RwLock<HashMap<String, Arc<CachedTlsData>>>,
     default: Arc<CachedTlsData>,
     full_cert_sent: RwLock<HashMap<IpAddr, Instant>>,
+    full_cert_sent_last_sweep_epoch_secs: AtomicU64,
     disk_path: PathBuf,
 }
 
@@ -53,6 +57,7 @@ impl TlsFrontCache {
             memory: RwLock::new(map),
             default,
             full_cert_sent: RwLock::new(HashMap::new()),
+            full_cert_sent_last_sweep_epoch_secs: AtomicU64::new(0),
             disk_path: disk_path.as_ref().to_path_buf(),
         }
     }
@@ -73,16 +78,31 @@ impl TlsFrontCache {
     /// according to TTL policy.
     pub async fn take_full_cert_budget_for_ip(&self, client_ip: IpAddr, ttl: Duration) -> bool {
         if ttl.is_zero() {
-            self.full_cert_sent
-                .write()
-                .await
-                .insert(client_ip, Instant::now());
             return true;
         }
 
         let now = Instant::now();
+        let now_epoch_secs = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let should_sweep = self
+            .full_cert_sent_last_sweep_epoch_secs
+            .fetch_update(Ordering::AcqRel, Ordering::Relaxed, |last_sweep| {
+                if now_epoch_secs.saturating_sub(last_sweep)
+                    >= FULL_CERT_SENT_SWEEP_INTERVAL_SECS
+                {
+                    Some(now_epoch_secs)
+                } else {
+                    None
+                }
+            })
+            .is_ok();
+
         let mut guard = self.full_cert_sent.write().await;
-        guard.retain(|_, seen_at| now.duration_since(*seen_at) < ttl);
+        if should_sweep {
+            guard.retain(|_, seen_at| now.duration_since(*seen_at) < ttl);
+        }
 
         match guard.get_mut(&client_ip) {
             Some(seen_at) => {
@@ -333,5 +353,63 @@ mod tests {
 
         assert!(cache.take_full_cert_budget_for_ip(ip, ttl).await);
         assert!(cache.take_full_cert_budget_for_ip(ip, ttl).await);
+
+        assert!(cache.full_cert_sent.read().await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_take_full_cert_budget_for_ip_sweeps_expired_entries_when_due() {
+        let cache = TlsFrontCache::new(&["example.com".to_string()], 1024, "tlsfront-test-cache");
+        let stale_ip: IpAddr = "127.0.0.1".parse().expect("ip");
+        let new_ip: IpAddr = "127.0.0.2".parse().expect("ip");
+        let ttl = Duration::from_secs(1);
+        let stale_seen_at = Instant::now()
+            .checked_sub(Duration::from_secs(10))
+            .unwrap_or_else(Instant::now);
+
+        cache
+            .full_cert_sent
+            .write()
+            .await
+            .insert(stale_ip, stale_seen_at);
+        cache
+            .full_cert_sent_last_sweep_epoch_secs
+            .store(0, Ordering::Relaxed);
+
+        assert!(cache.take_full_cert_budget_for_ip(new_ip, ttl).await);
+
+        let guard = cache.full_cert_sent.read().await;
+        assert!(!guard.contains_key(&stale_ip));
+        assert!(guard.contains_key(&new_ip));
+    }
+
+    #[tokio::test]
+    async fn test_take_full_cert_budget_for_ip_does_not_sweep_every_call() {
+        let cache = TlsFrontCache::new(&["example.com".to_string()], 1024, "tlsfront-test-cache");
+        let stale_ip: IpAddr = "127.0.0.1".parse().expect("ip");
+        let new_ip: IpAddr = "127.0.0.2".parse().expect("ip");
+        let ttl = Duration::from_secs(1);
+        let stale_seen_at = Instant::now()
+            .checked_sub(Duration::from_secs(10))
+            .unwrap_or_else(Instant::now);
+        let now_epoch_secs = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        cache
+            .full_cert_sent
+            .write()
+            .await
+            .insert(stale_ip, stale_seen_at);
+        cache
+            .full_cert_sent_last_sweep_epoch_secs
+            .store(now_epoch_secs, Ordering::Relaxed);
+
+        assert!(cache.take_full_cert_budget_for_ip(new_ip, ttl).await);
+
+        let guard = cache.full_cert_sent.read().await;
+        assert!(guard.contains_key(&stale_ip));
+        assert!(guard.contains_key(&new_ip));
     }
 }

@@ -18,6 +18,8 @@ use crate::ip_tracker::UserIpTracker;
 use crate::proxy::shared_state::ProxySharedState;
 use crate::stats::Stats;
 use crate::stats::beobachten::BeobachtenStore;
+use crate::tls_front::cache;
+use crate::tls_front::fetcher;
 use crate::transport::{ListenOptions, create_listener};
 
 pub async fn serve(
@@ -364,6 +366,56 @@ async fn render_metrics(
         out,
         "telemt_buffer_pool_buffers_total{{kind=\"in_use\"}} {}",
         stats.get_buffer_pool_in_use_gauge()
+    );
+
+    let _ = writeln!(
+        out,
+        "# HELP telemt_tls_fetch_profile_cache_entries Current adaptive TLS fetch profile-cache entries"
+    );
+    let _ = writeln!(
+        out,
+        "# TYPE telemt_tls_fetch_profile_cache_entries gauge"
+    );
+    let _ = writeln!(
+        out,
+        "telemt_tls_fetch_profile_cache_entries {}",
+        fetcher::profile_cache_entries_for_metrics()
+    );
+    let _ = writeln!(
+        out,
+        "# HELP telemt_tls_fetch_profile_cache_cap_drops_total Profile-cache winner inserts skipped because the cache cap was reached"
+    );
+    let _ = writeln!(
+        out,
+        "# TYPE telemt_tls_fetch_profile_cache_cap_drops_total counter"
+    );
+    let _ = writeln!(
+        out,
+        "telemt_tls_fetch_profile_cache_cap_drops_total {}",
+        fetcher::profile_cache_cap_drops_for_metrics()
+    );
+    let _ = writeln!(
+        out,
+        "# HELP telemt_tls_front_full_cert_budget_ips Current IP entries tracked by TLS full-cert budget"
+    );
+    let _ = writeln!(out, "# TYPE telemt_tls_front_full_cert_budget_ips gauge");
+    let _ = writeln!(
+        out,
+        "telemt_tls_front_full_cert_budget_ips {}",
+        cache::full_cert_sent_ips_for_metrics()
+    );
+    let _ = writeln!(
+        out,
+        "# HELP telemt_tls_front_full_cert_budget_cap_drops_total New IPs denied full-cert budget tracking because the cap was reached"
+    );
+    let _ = writeln!(
+        out,
+        "# TYPE telemt_tls_front_full_cert_budget_cap_drops_total counter"
+    );
+    let _ = writeln!(
+        out,
+        "telemt_tls_front_full_cert_budget_cap_drops_total {}",
+        cache::full_cert_sent_cap_drops_for_metrics()
     );
 
     let _ = writeln!(
@@ -3071,6 +3123,21 @@ async fn render_metrics(
         "telemt_ip_tracker_cleanup_queue_len {}",
         ip_memory.cleanup_queue_len
     );
+    let _ = writeln!(
+        out,
+        "# HELP telemt_ip_tracker_cap_rejects_total New connection rejects caused by global IP tracker caps"
+    );
+    let _ = writeln!(out, "# TYPE telemt_ip_tracker_cap_rejects_total counter");
+    let _ = writeln!(
+        out,
+        "telemt_ip_tracker_cap_rejects_total{{scope=\"active\"}} {}",
+        ip_memory.active_cap_rejects
+    );
+    let _ = writeln!(
+        out,
+        "telemt_ip_tracker_cap_rejects_total{{scope=\"recent\"}} {}",
+        ip_memory.recent_cap_rejects
+    );
 
     if user_enabled {
         for entry in stats.iter_user_stats() {
@@ -3409,6 +3476,13 @@ mod tests {
         assert!(output.contains("# TYPE telemt_ip_tracker_users gauge"));
         assert!(output.contains("# TYPE telemt_ip_tracker_entries gauge"));
         assert!(output.contains("# TYPE telemt_ip_tracker_cleanup_queue_len gauge"));
+        assert!(output.contains("# TYPE telemt_ip_tracker_cap_rejects_total counter"));
+        assert!(output.contains("# TYPE telemt_tls_fetch_profile_cache_entries gauge"));
+        assert!(output.contains("# TYPE telemt_tls_fetch_profile_cache_cap_drops_total counter"));
+        assert!(output.contains("# TYPE telemt_tls_front_full_cert_budget_ips gauge"));
+        assert!(
+            output.contains("# TYPE telemt_tls_front_full_cert_budget_cap_drops_total counter")
+        );
     }
 
     #[tokio::test]

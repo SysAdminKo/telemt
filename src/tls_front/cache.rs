@@ -14,6 +14,20 @@ use crate::tls_front::types::{
 };
 
 const FULL_CERT_SENT_SWEEP_INTERVAL_SECS: u64 = 30;
+const FULL_CERT_SENT_MAX_IPS: usize = 65_536;
+
+static FULL_CERT_SENT_IPS_GAUGE: AtomicU64 = AtomicU64::new(0);
+static FULL_CERT_SENT_CAP_DROPS: AtomicU64 = AtomicU64::new(0);
+
+/// Current number of IPs tracked by the TLS full-cert budget gate.
+pub(crate) fn full_cert_sent_ips_for_metrics() -> u64 {
+    FULL_CERT_SENT_IPS_GAUGE.load(Ordering::Relaxed)
+}
+
+/// Number of new IPs denied a full-cert budget slot because the cap was reached.
+pub(crate) fn full_cert_sent_cap_drops_for_metrics() -> u64 {
+    FULL_CERT_SENT_CAP_DROPS.load(Ordering::Relaxed)
+}
 
 /// Lightweight in-memory + optional on-disk cache for TLS fronting data.
 #[derive(Debug)]
@@ -104,7 +118,7 @@ impl TlsFrontCache {
             guard.retain(|_, seen_at| now.duration_since(*seen_at) < ttl);
         }
 
-        match guard.get_mut(&client_ip) {
+        let allowed = match guard.get_mut(&client_ip) {
             Some(seen_at) => {
                 if now.duration_since(*seen_at) >= ttl {
                     *seen_at = now;
@@ -114,10 +128,17 @@ impl TlsFrontCache {
                 }
             }
             None => {
+                if guard.len() >= FULL_CERT_SENT_MAX_IPS {
+                    FULL_CERT_SENT_CAP_DROPS.fetch_add(1, Ordering::Relaxed);
+                    FULL_CERT_SENT_IPS_GAUGE.store(guard.len() as u64, Ordering::Relaxed);
+                    return false;
+                }
                 guard.insert(client_ip, now);
                 true
             }
-        }
+        };
+        FULL_CERT_SENT_IPS_GAUGE.store(guard.len() as u64, Ordering::Relaxed);
+        allowed
     }
 
     pub async fn set(&self, domain: &str, data: CachedTlsData) {
